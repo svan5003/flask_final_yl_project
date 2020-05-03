@@ -157,7 +157,21 @@ def add_news():
 
 @app.route('/map')
 def map():
-    return render_template("map_1.html")
+    # отображение доступных меток от других людей
+    session = db_session.create_session()
+    requests = []
+    for request in session.query(Request).all():
+        user = session.query(User).filter(User.id == request.sender_id).first()
+        address = ", ".join(
+            [user.address["city"], user.address["street"], user.address["building"]])
+        requests.append({"name": request.name,
+                         "description": request.description,
+                         "user": user.surname + " " + user.name,
+                         "telephone": str(user.telephone_number),
+                         "address": address
+                         })
+    print(requests[0]["address"])
+    return render_template("map_2.html", requests=requests)
 
 
 def main():
