@@ -1,4 +1,5 @@
-from flask import Flask, render_template, redirect
+from flask import Flask, render_template, redirect, abort
+from flask import request as r
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from data import db_session
 from data.users import User
@@ -39,13 +40,16 @@ class RegisterForm(FlaskForm):
 class RequestForm(FlaskForm):
     name = StringField('Заголовок', validators=[DataRequired()])
     description = TextAreaField("Содержание")
-    is_active = BooleanField("Личное")
+    city = StringField('Город', validators=[DataRequired()])
+    street = StringField('Улица', validators=[DataRequired()])
+    building = StringField('Дом', validators=[DataRequired()])
+    flat = StringField('Квартира')
+    is_active = BooleanField("Активен/неактивен")
+
     submit = SubmitField('Применить')
 
 
 # добавляем запрос
-
-
 @app.route('/register', methods=['GET', 'POST'])
 def reqister():
     form = RegisterForm()
@@ -138,8 +142,12 @@ def profile_switch_outgoing():
 
 @app.route('/request', methods=['GET', 'POST'])
 @login_required
-def add_news():
+def add_request():
     form = RequestForm()
+    form.city.data = current_user.address["city"]
+    form.street.data = current_user.address["street"]
+    form.building.data = current_user.address["building"]
+    form.flat.data = current_user.address["flat"]
     if form.validate_on_submit():
         session = db_session.create_session()
         request = Request()
@@ -147,12 +155,59 @@ def add_news():
         request.description = form.description.data
         request.is_active = form.is_active.data
         request.sender_id = current_user.id
+        request.address = ", ".join([form.city.data, form.street.data, form.building.data, form.flat.data])
         current_user.outgoing_requests.append(request)
         session.merge(current_user)
         session.commit()
         return redirect('/profile')
     return render_template('request_edit.html', title='Добавление запроса',
                            form=form)
+
+
+@app.route('/request/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_news(id):
+    form = RequestForm()
+    if r.method == "GET":
+        session = db_session.create_session()
+        request = session.query(Request).filter(Request.id == id,
+                                                Request.sender_id == current_user.id).first()
+        if request:
+            form.name.data = request.name
+            form.description.data = request.description
+            form.is_active.data = request.is_active
+        else:
+            abort(404)
+    if form.validate_on_submit():
+        session = db_session.create_session()
+        request = session.query(Request).filter(Request.id == id,
+                                                Request.sender_id == current_user.id).first()
+        if request:
+            request.name = form.name.data
+            request.description = form.description.data
+            request.is_active = form.is_active.data
+            request.sender_id = current_user.id
+            request.address = ", ".join([form.city.data, form.street.data, form.building.data, form.flat.data])
+            session.merge(current_user)
+            session.commit()
+            return redirect('/profile')
+        else:
+            abort(404)
+    return render_template('request_edit.html', title='Редактирование новости', form=form)
+
+
+@app.route('/request_delete/<int:id>', methods=['GET', 'POST'])
+@login_required
+def news_delete(id):
+    session = db_session.create_session()
+    request = session.query(Request).filter(Request.id == id,
+                                            Request.sender_id == current_user.id).first()
+    if request:
+        session.delete(request)
+        session.commit()
+    else:
+        abort(404)
+    return redirect('/profile')
 
 
 @app.route('/map')
@@ -162,13 +217,11 @@ def map():
     requests = []
     for request in session.query(Request).all():
         user = session.query(User).filter(User.id == request.sender_id).first()
-        address = ", ".join(
-            [user.address["city"], user.address["street"], user.address["building"]])
         requests.append({"name": request.name,
                          "description": request.description,
                          "user": user.surname + " " + user.name,
                          "telephone": str(user.telephone_number),
-                         "address": address
+                         "address": request.address
                          })
     print(requests[0]["address"])
     return render_template("map_2.html", requests=requests)

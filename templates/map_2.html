@@ -18,9 +18,9 @@ function init() {
         center: [55.753994, 37.622093],
         zoom: 9
     });
-
+    {% for item in requests %}
     // Поиск координат центра Нижнего Новгорода.
-    ymaps.geocode('{{requests[0]["address"]}}', {
+    ymaps.geocode('{{item["address"]}}', {
         results: 1
     }).then(function (res) {
             // Выбираем первый результат геокодирования.
@@ -44,6 +44,7 @@ function init() {
 
 
         });
+      {% endfor %}
 }
 </script>
     <style type="text/css">
