@@ -18,6 +18,8 @@ function init() {
         center: [55.753994, 37.622093],
         zoom: 9
     });
+
+
     {% for item in requests %}
     // Поиск координат центра Нижнего Новгорода.
     ymaps.geocode('{{item["address"]}}', {
@@ -30,14 +32,22 @@ function init() {
                 // Область видимости геообъекта.
                 bounds = firstGeoObject.properties.get('boundedBy');
 
-            firstGeoObject.options.set('preset', 'islands#darkBlueDotIconWithCaption');
-            // Получаем строку с адресом и выводим в иконке геообъекта.
-            firstGeoObject.properties.set('iconCaption', firstGeoObject.getAddressLine());
+            var myPlacemark = new ymaps.Placemark(coords, {
+            // Зададим содержимое заголовка балуна.
+        balloonContentHeader: '<a href = "#">{{item["name"]}}</a><br>',
+        // Зададим содержимое основной части балуна.
+        balloonContentBody: '{{item["description"]}}',
+        // Зададим содержимое нижней части балуна.
+        balloonContentFooter: 'Информация предоставлена:<br/>OOO "Рога и копыта"',
+        // Зададим содержимое всплывающей подсказки.
+        hintContent: 'Рога и копыта'
+        }, {
+            preset: 'islands#dotIcon',
+            iconColor: '#735184'
+        });
 
-            // Добавляем первый найденный геообъект на карту.
-            myMap.geoObjects.add(firstGeoObject);
-            // Масштабируем карту на область видимости геообъекта.
-            myMap.setBounds(bounds, {
+            myMap.geoObjects.add(myPlacemark);
+        myMap.setBounds(bounds, {
                 // Проверяем наличие тайлов на данном масштабе.
                 checkZoomRange: true
             });
