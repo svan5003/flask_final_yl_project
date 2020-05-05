@@ -166,7 +166,7 @@ def add_request():
 
 @app.route('/request/<int:id>', methods=['GET', 'POST'])
 @login_required
-def edit_news(id):
+def edit_request(id):
     form = RequestForm()
     if r.method == "GET":
         session = db_session.create_session()
@@ -198,11 +198,12 @@ def edit_news(id):
 
 @app.route('/request_delete/<int:id>', methods=['GET', 'POST'])
 @login_required
-def news_delete(id):
+def request_delete(id):
     session = db_session.create_session()
     request = session.query(Request).filter(Request.id == id,
                                             Request.sender_id == current_user.id).first()
     if request:
+        #current_user.
         session.delete(request)
         session.commit()
     else:
@@ -210,8 +211,18 @@ def news_delete(id):
     return redirect('/profile')
 
 
+@app.route('/request_ingoing/<int:id>', methods=['GET', 'POST'])
+@login_required
+def request_ingoing(id):
+    session = db_session.create_session()
+    current_user.ingoing_requests.append(session.query(Request).filter(Request.id == id).first())
+    session.merge(current_user)
+    session.commit()
+    return redirect('/map')
+
+
 @app.route('/map')
-def map():
+def map_1():
     # отображение доступных меток от других людей
     session = db_session.create_session()
     requests = []
@@ -221,10 +232,14 @@ def map():
                          "description": request.description,
                          "user": user.surname + " " + user.name,
                          "telephone": str(user.telephone_number),
-                         "address": request.address
+                         "address": request.address,
+                         # также добавляем объект класса Request для удобства
+                         "req_id": request.id
                          })
-    print(requests[0]["address"])
-    return render_template("map_2.html", requests=requests)
+    outgoing_requests_ids = list(map(lambda x: x.id, current_user.outgoing_requests))
+    ingoing_requests_ids = list(map(lambda x: x.id, current_user.ingoing_requests))
+    #session.commit()
+    return render_template("map_2.html", requests=requests, ingoing_requests_ids=ingoing_requests_ids, outgoing_requests_ids=outgoing_requests_ids)
 
 
 def main():

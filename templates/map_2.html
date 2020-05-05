@@ -22,6 +22,7 @@ function init() {
 
     {% for item in requests %}
     // Поиск координат центра Нижнего Новгорода.
+    {% if item["req_id"] not in ingoing_requests_ids and item["req_id"] not in outgoing_requests_ids %}
     ymaps.geocode('{{item["address"]}}', {
         results: 1
     }).then(function (res) {
@@ -34,13 +35,13 @@ function init() {
 
             var myPlacemark = new ymaps.Placemark(coords, {
             // Зададим содержимое заголовка балуна.
-        balloonContentHeader: '<a href = "#">{{item["name"]}}</a><br>',
+        balloonContentHeader: '<a>{{item["name"]}}</a><br>',
         // Зададим содержимое основной части балуна.
-        balloonContentBody: '{{item["description"]}}',
+        balloonContentBody: '{{item["description"]}}<br><a class="btn btn-primary " href="/request_ingoing/{{item["req_id"]}}">Выполнить</a>',
         // Зададим содержимое нижней части балуна.
         balloonContentFooter: 'Информация предоставлена:<br/>OOO "Рога и копыта"',
         // Зададим содержимое всплывающей подсказки.
-        hintContent: 'Рога и копыта'
+        hintContent: '{{item["name"]}}'
         }, {
             preset: 'islands#dotIcon',
             iconColor: '#735184'
@@ -51,6 +52,37 @@ function init() {
                 // Проверяем наличие тайлов на данном масштабе.
                 checkZoomRange: true
             });
+    {% else %}
+        ymaps.geocode('{{item["address"]}}', {
+        results: 1
+    }).then(function (res) {
+            // Выбираем первый результат геокодирования.
+            var firstGeoObject = res.geoObjects.get(0),
+                // Координаты геообъекта.
+                coords = firstGeoObject.geometry.getCoordinates(),
+                // Область видимости геообъекта.
+                bounds = firstGeoObject.properties.get('boundedBy');
+
+            var myPlacemark = new ymaps.Placemark(coords, {
+            // Зададим содержимое заголовка балуна.
+        balloonContentHeader: '<a>{{item["name"]}}</a><br>',
+        // Зададим содержимое основной части балуна.
+        balloonContentBody: '{{item["description"]}}<br>',
+        // Зададим содержимое нижней части балуна.
+        balloonContentFooter: 'Информация предоставлена:<br/>OOO "Рога и копыта"',
+        // Зададим содержимое всплывающей подсказки.
+        hintContent: '{{item["name"]}}'
+        }, {
+            preset: 'islands#dotIcon',
+            iconColor: '#735184'
+        });
+
+            myMap.geoObjects.add(myPlacemark);
+        myMap.setBounds(bounds, {
+                // Проверяем наличие тайлов на данном масштабе.
+                checkZoomRange: true
+            });
+    {% endif %}
 
 
         });
