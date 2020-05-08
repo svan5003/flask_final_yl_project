@@ -17,8 +17,8 @@ class User(SqlAlchemyBase, UserMixin):
                               index=True, unique=True, nullable=True)
     about = sqlalchemy.Column(sqlalchemy.String, nullable=True)
     hashed_password = sqlalchemy.Column(sqlalchemy.String, nullable=True)
-    outgoing_requests = orm.relation("Request", secondary="outgoing_requests")
-    ingoing_requests = orm.relation("Request", secondary="ingoing_requests")
+    # outgoing_requests = orm.relation("Request", secondary="outgoing_requests")
+    # ingoing_requests = orm.relation("Request", secondary="ingoing_requests")
 
     def set_password(self, password):
         self.hashed_password = generate_password_hash(password)

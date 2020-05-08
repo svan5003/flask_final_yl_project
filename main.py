@@ -40,10 +40,7 @@ class RegisterForm(FlaskForm):
 class RequestForm(FlaskForm):
     name = StringField('Заголовок', validators=[DataRequired()])
     description = TextAreaField("Содержание")
-    city = StringField('Город', validators=[DataRequired()])
-    street = StringField('Улица', validators=[DataRequired()])
-    building = StringField('Дом', validators=[DataRequired()])
-    flat = StringField('Квартира')
+    address = TextAreaField("Адрес", validators=[DataRequired()])
     is_active = BooleanField("Активен/неактивен")
 
     submit = SubmitField('Применить')
@@ -113,17 +110,65 @@ def index():
     return render_template("index.html")
 
 
+def get_ingoing_requests(user):
+    session = db_session.create_session()
+    return session.query(Request).filter(Request.provider_id == user.id).all()
+
+
+def get_outgoing_requests(user):
+    session = db_session.create_session()
+    return session.query(Request).filter(Request.sender_id == user.id).all()
+
+
 flag_1 = True
 
 
 @app.route("/profile")
 def profile():
     global flag_1
+    session = db_session.create_session()
+    requests_users = []
     if flag_1:
-        requests = current_user.outgoing_requests
+        requests = get_outgoing_requests(current_user)
+        for request in requests:
+            user = session.query(User).filter(User.id == request.sender_id).first()
+            requests_users.append((request, user))
     else:
-        requests = current_user.ingoing_requests
-    return render_template("profile.html", requests=requests, flag=flag_1)
+        requests = get_ingoing_requests(current_user)
+        for request in requests:
+            user = session.query(User).filter(User.id == request.sender_id).first()
+            requests_users.append((request, user))
+
+    return render_template("profile.html", requests=requests_users, flag=flag_1)
+
+
+@app.route('/request_activate/<int:id>')
+def request_activate(id):
+    session = db_session.create_session()
+    request = session.query(Request).filter(Request.id == id).first()
+    request.is_active = True
+    session.commit()
+    return redirect("/profile")
+
+
+@app.route('/request_deactivate/<int:id>')
+def request_deactivate(id):
+    session = db_session.create_session()
+    request = session.query(Request).filter(Request.id == id).first()
+    request.is_active = False
+    request.provider_id = None
+    session.commit()
+    return redirect("/profile")
+
+#
+# @app.route('/request_deactivate_provider/<int:id>')
+# def request_deactivate_provider(id):
+#     session = db_session.create_session()
+#     request = session.query(Request).filter(Request.id == id).first()
+#     request.is_active = False
+#     request.provider_id = None
+#     session.commit()
+#     return redirect("/profile")
 
 
 @app.route("/profile/switch/ingoing")
@@ -144,10 +189,10 @@ def profile_switch_outgoing():
 @login_required
 def add_request():
     form = RequestForm()
-    form.city.data = current_user.address["city"]
-    form.street.data = current_user.address["street"]
-    form.building.data = current_user.address["building"]
-    form.flat.data = current_user.address["flat"]
+    if r.method == "GET":
+        form.address.data = ", ".join(
+            [current_user.address["city"], current_user.address["street"], current_user.address["building"],
+             current_user.address["flat"]])
     if form.validate_on_submit():
         session = db_session.create_session()
         request = Request()
@@ -155,9 +200,8 @@ def add_request():
         request.description = form.description.data
         request.is_active = form.is_active.data
         request.sender_id = current_user.id
-        request.address = ", ".join([form.city.data, form.street.data, form.building.data, form.flat.data])
-        current_user.outgoing_requests.append(request)
-        session.merge(current_user)
+        request.address = form.address.data
+        session.add(request)
         session.commit()
         return redirect('/profile')
     return render_template('request_edit.html', title='Добавление запроса',
@@ -187,8 +231,7 @@ def edit_request(id):
             request.description = form.description.data
             request.is_active = form.is_active.data
             request.sender_id = current_user.id
-            request.address = ", ".join([form.city.data, form.street.data, form.building.data, form.flat.data])
-            session.merge(current_user)
+            request.address = form.address.data
             session.commit()
             return redirect('/profile')
         else:
@@ -203,7 +246,6 @@ def request_delete(id):
     request = session.query(Request).filter(Request.id == id,
                                             Request.sender_id == current_user.id).first()
     if request:
-        #current_user.
         session.delete(request)
         session.commit()
     else:
@@ -213,15 +255,15 @@ def request_delete(id):
 
 @app.route('/request_ingoing/<int:id>', methods=['GET', 'POST'])
 @login_required
-def request_ingoing(id):
+def add_ingoing_request(id):
     session = db_session.create_session()
-    current_user.ingoing_requests.append(session.query(Request).filter(Request.id == id).first())
-    session.merge(current_user)
+    request = session.query(Request).filter(Request.id == id).first()
+    request.provider_id = current_user.id
     session.commit()
     return redirect('/map')
 
 
-@app.route('/map')
+@app.route('/map', methods=['GET', 'POST'])
 def map_1():
     # отображение доступных меток от других людей
     session = db_session.create_session()
@@ -234,12 +276,13 @@ def map_1():
                          "telephone": str(user.telephone_number),
                          "address": request.address,
                          # также добавляем объект класса Request для удобства
-                         "req_id": request.id
+                         "req_id": request.id,
+                         "req_is_active": request.is_active
                          })
-    outgoing_requests_ids = list(map(lambda x: x.id, current_user.outgoing_requests))
-    ingoing_requests_ids = list(map(lambda x: x.id, current_user.ingoing_requests))
-    #session.commit()
-    return render_template("map_2.html", requests=requests, ingoing_requests_ids=ingoing_requests_ids, outgoing_requests_ids=outgoing_requests_ids)
+    outgoing_requests_ids = list(map(lambda x: x.id, get_outgoing_requests(current_user)))
+    ingoing_requests_ids = list(map(lambda x: x.id, get_ingoing_requests(current_user)))
+    return render_template("map_2.html", requests=requests, ingoing_requests_ids=ingoing_requests_ids,
+                           outgoing_requests_ids=outgoing_requests_ids)
 
 
 def main():

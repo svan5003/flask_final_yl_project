@@ -24,41 +24,16 @@
         {% endfor %}
     </p>
     <p>
-        {{ form.city.label }}<br>
-        {{ form.city(class="form-control") }}<br>
-        {% for error in form.city.errors %}
+        {{ form.address.label }}<br>
+        {{ form.address(class="form-control") }}<br>
+        {% for error in form.address.errors %}
             <p content="alert alert-danger" role="alert">
                 {{ error }}
             </p>
         {% endfor %}
     </p>
-     <p>
-        {{ form.street.label }}<br>
-        {{ form.street(class="form-control") }}<br>
-        {% for error in form.street.errors %}
-            <p content="alert alert-danger" role="alert">
-                {{ error }}
-            </p>
-        {% endfor %}
-    </p>
-    <p>
-        {{ form.building.label }}<br>
-        {{ form.building(class="form-control") }}<br>
-        {% for error in form.building.errors %}
-            <p content="alert alert-danger" role="alert">
-                {{ error }}
-            </p>
-        {% endfor %}
-    </p>
-     <p>
-        {{ form.flat.label }}<br>
-        {{ form.flat(class="form-control") }}<br>
-        {% for error in form.flat.errors %}
-            <p content="alert alert-danger" role="alert">
-                {{ error }}
-            </p>
-        {% endfor %}
-    </p>
+
+
     <p>{{ form.is_active() }} {{ form.is_active.label }}</p>
     <p>{{ form.submit(type="submit", class="btn btn-primary") }}</p>
     {{message}}
