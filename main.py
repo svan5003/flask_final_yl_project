@@ -262,14 +262,10 @@ def map_1():
     requests = []
     for request in session.query(Request).all():
         user = session.query(User).filter(User.id == request.sender_id).first()
-        requests.append({"name": request.name,
-                         "description": request.description,
-                         "user": user.surname + " " + user.name,
+        requests.append({"user": user.surname + " " + user.name,
                          "telephone": str(user.telephone_number),
-                         "address": request.address,
-                         # также добавляем объект класса Request для удобства
-                         "req_id": request.id,
-                         "req_is_active": request.is_active
+                         "email": user.email,
+                         "request": request
                          })
     outgoing_requests_ids = list(map(lambda x: x.id, get_outgoing_requests(current_user)))
     ingoing_requests_ids = list(map(lambda x: x.id, get_ingoing_requests(current_user)))

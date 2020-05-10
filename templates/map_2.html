@@ -22,8 +22,8 @@ function init() {
 
     {% for item in requests %}
     // Поиск координат центра Нижнего Новгорода.
-    {% if item["req_is_active"] %}
-    ymaps.geocode('{{item["address"]}}', {
+    {% if item["request"].is_active and (not item["request"].provider_id or item["request"].provider_id == current_user.id or current_user.id == item["request"].sender_id)%}
+    ymaps.geocode('{{item["request"].address}}', {
         results: 1
     }).then(function (res) {
             // Выбираем первый результат геокодирования.
@@ -35,17 +35,17 @@ function init() {
 
             var myPlacemark = new ymaps.Placemark(coords, {
             // Зададим содержимое заголовка балуна.
-        balloonContentHeader: '<a>{{item["name"]}}</a><br>',
+        balloonContentHeader: '<a>{{item["request"].name}}</a><br>',
         // Зададим содержимое основной части балуна.
-        {% if item["req_id"] not in ingoing_requests_ids and item["req_id"] not in outgoing_requests_ids %}
-            balloonContentBody: '{{item["description"]}}<br><a class="btn btn-primary " href="/request_ingoing/{{item["req_id"]}}">Выполнить</a>',
+        {% if item["request"].id not in ingoing_requests_ids and item["request"].id not in outgoing_requests_ids %}
+            balloonContentBody: '{{item["request"].description}}<br><a class="btn btn-primary " href="/request_ingoing/{{item["request"].id}}">Выполнить</a>',
         {% else %}
-                balloonContentBody: '{{item["description"]}}<br>',
+                balloonContentBody: '{{item["request"].description}}<br>',
         {% endif %}
         // Зададим содержимое нижней части балуна.
-        balloonContentFooter: 'Информация предоставлена:<br/>OOO "Рога и копыта"',
+        balloonContentFooter: 'Отправил: {{item["user"]}}<br>Адрес: {{item["request"].address}}<br>Контакты<br>{{item["email"]}}<br>{{item["telephone"]}}',
         // Зададим содержимое всплывающей подсказки.
-        hintContent: '{{item["name"]}}'
+        hintContent: '{{item["request"].name}}'
         }, {
             preset: 'islands#dotIcon',
             iconColor: '#735184'
