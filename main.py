@@ -1,15 +1,17 @@
 from flask import Flask, render_template, redirect, abort
 from flask import request as r
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from data import db_session
+from data import db_session, request_resources, user_resources
 from data.users import User
 from data.requests import Request
 from flask_wtf import FlaskForm
+from flask_restful import Api
 from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextAreaField
 from wtforms.fields.html5 import EmailField, TelField
 from wtforms.validators import DataRequired
 
 app = Flask(__name__)
+api = Api(app)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -160,16 +162,6 @@ def request_deactivate(id):
     session.commit()
     return redirect("/profile")
 
-#
-# @app.route('/request_deactivate_provider/<int:id>')
-# def request_deactivate_provider(id):
-#     session = db_session.create_session()
-#     request = session.query(Request).filter(Request.id == id).first()
-#     request.is_active = False
-#     request.provider_id = None
-#     session.commit()
-#     return redirect("/profile")
-
 
 @app.route("/profile/switch/ingoing")
 def profile_switch_ingoing():
@@ -287,6 +279,10 @@ def map_1():
 
 def main():
     db_session.global_init("db/users_requests.sqlite")
+    api.add_resource(request_resources.RequestListResource, '/api/request')
+    api.add_resource(request_resources.RequestResource, '/api/request/<int:request_id>')
+    api.add_resource(user_resources.UserListResource, '/api/user')
+    api.add_resource(user_resources.UserResource, '/api/user/<int:user_id>')
     app.run(port=8080, host='127.0.0.1')
 
 
