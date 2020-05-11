@@ -37,7 +37,7 @@ function init() {
             // Зададим содержимое заголовка балуна.
         balloonContentHeader: '<a>{{item["request"].name}}</a><br>',
         // Зададим содержимое основной части балуна.
-        {% if item["request"].id not in ingoing_requests_ids and item["request"].id not in outgoing_requests_ids %}
+        {% if item["request"].id not in ingoing_requests_ids and item["request"].id not in outgoing_requests_ids and current_user.is_authenticated%}
             balloonContentBody: '{{item["request"].description}}<br><a class="btn btn-primary " href="/request_ingoing/{{item["request"].id}}">Выполнить</a>',
         {% else %}
                 balloonContentBody: '{{item["request"].description}}<br>',
@@ -82,16 +82,18 @@ function init() {
 <body>
 <header>
     <nav class="navbar navbar-light bg-light">
-        <a class="navbar-brand" href="#">Наше Супер ПО обращаться по тел 999 999 99 99</a>
+        <a class="navbar-brand" href="/">#помогимне</a>
         {% if current_user.is_authenticated %}
+        <p>
         <a class="navbar-brand" href="/logout">{{ current_user.name + " " + current_user.surname}}</a>
         <a class="btn btn-danger" href="/map">Карта</a>
         <a class="btn btn-success" href="/profile">Профиль</a>
+        </p>
         {% else %}
         <p>
         <a class="btn btn-primary " href="/register">Зарегистрироваться</a>
         <a class="btn btn-success" href="/login">Войти</a>
-            <!-- TODO добавить функционал карты для неавторизованного пользователя -->
+            <a class="btn btn-danger" href="/map">Карта</a>
         </p>
 {% endif %}
     </nav>

@@ -10,6 +10,7 @@ from wtforms import StringField, PasswordField, BooleanField, SubmitField, TextA
 from wtforms.fields.html5 import EmailField, TelField
 from wtforms.validators import DataRequired
 
+# проводим первичную настройку приложения
 app = Flask(__name__)
 api = Api(app)
 app.config['SECRET_KEY'] = 'yandexlyceum_secret_key'
@@ -17,6 +18,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 
+# объявляем классы форм, созданных с помощью модуля flask-wtf
 class LoginForm(FlaskForm):
     email = EmailField('Почта', validators=[DataRequired()])
     password = PasswordField('Пароль', validators=[DataRequired()])
@@ -44,11 +46,10 @@ class RequestForm(FlaskForm):
     description = TextAreaField("Содержание")
     address = TextAreaField("Адрес", validators=[DataRequired()])
     is_active = BooleanField("Активен/неактивен")
-
     submit = SubmitField('Применить')
 
 
-# добавляем запрос
+# функция для регистрации/авторизации пользователя
 @app.route('/register', methods=['GET', 'POST'])
 def reqister():
     form = RegisterForm()
@@ -106,22 +107,26 @@ def logout():
     return redirect("/")
 
 
+# главная страница
 @app.route('/index')
 @app.route('/')
 def index():
     return render_template("index.html")
 
 
+# получаем для пользователя запросы, которые отправил он сам
 def get_ingoing_requests(user):
     session = db_session.create_session()
     return session.query(Request).filter(Request.provider_id == user.id).all()
 
 
+# получаем для пользователя запросы, которые он выполняет
 def get_outgoing_requests(user):
     session = db_session.create_session()
     return session.query(Request).filter(Request.sender_id == user.id).all()
 
 
+# флаг, отвечающий за показ входящих/исходящих запросов
 flag_1 = True
 
 
@@ -144,6 +149,7 @@ def profile():
     return render_template("profile.html", requests=requests_users, flag=flag_1)
 
 
+# активируем неактивный запрос
 @app.route('/request_activate/<int:id>')
 def request_activate(id):
     session = db_session.create_session()
@@ -153,6 +159,7 @@ def request_activate(id):
     return redirect("/profile")
 
 
+# деактивируем активный запрос
 @app.route('/request_deactivate/<int:id>')
 def request_deactivate(id):
     session = db_session.create_session()
@@ -163,6 +170,7 @@ def request_deactivate(id):
     return redirect("/profile")
 
 
+# переключаемся на отображение входящих запросов
 @app.route("/profile/switch/ingoing")
 def profile_switch_ingoing():
     global flag_1
@@ -170,6 +178,7 @@ def profile_switch_ingoing():
     return redirect("/profile")
 
 
+# переключаемся на отображение исходящих запросов
 @app.route("/profile/switch/outgoing")
 def profile_switch_outgoing():
     global flag_1
@@ -177,6 +186,7 @@ def profile_switch_outgoing():
     return redirect("/profile")
 
 
+# функции для добавления/редактирования/удаления запроса
 @app.route('/request', methods=['GET', 'POST'])
 @login_required
 def add_request():
@@ -245,6 +255,7 @@ def request_delete(id):
     return redirect('/profile')
 
 
+# добавляем к пользователю входящий запрос
 @app.route('/request_ingoing/<int:id>', methods=['GET', 'POST'])
 @login_required
 def add_ingoing_request(id):
@@ -255,9 +266,9 @@ def add_ingoing_request(id):
     return redirect('/map')
 
 
+# отображение интерактивной карты с запросами
 @app.route('/map', methods=['GET', 'POST'])
 def map_1():
-    # отображение доступных меток от других людей
     session = db_session.create_session()
     requests = []
     for request in session.query(Request).all():
@@ -267,8 +278,12 @@ def map_1():
                          "email": user.email,
                          "request": request
                          })
-    outgoing_requests_ids = list(map(lambda x: x.id, get_outgoing_requests(current_user)))
-    ingoing_requests_ids = list(map(lambda x: x.id, get_ingoing_requests(current_user)))
+    if current_user.is_authenticated:
+        outgoing_requests_ids = list(map(lambda x: x.id, get_outgoing_requests(current_user)))
+        ingoing_requests_ids = list(map(lambda x: x.id, get_ingoing_requests(current_user)))
+    else:
+        outgoing_requests_ids = []
+        ingoing_requests_ids = []
     return render_template("map_2.html", requests=requests, ingoing_requests_ids=ingoing_requests_ids,
                            outgoing_requests_ids=outgoing_requests_ids)
 
