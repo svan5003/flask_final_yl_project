@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template, redirect, abort
 from flask import request as r
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -294,7 +295,8 @@ def main():
     api.add_resource(request_resources.RequestResource, '/api/request/<int:request_id>')
     api.add_resource(user_resources.UserListResource, '/api/user')
     api.add_resource(user_resources.UserResource, '/api/user/<int:user_id>')
-    app.run(port=8080, host='127.0.0.1')
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
 
 
 if __name__ == '__main__':
